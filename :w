@@ -1,0 +1,58 @@
+from dxfwrite import DXFEngine as dxf
+import numpy as np
+
+mirror = False
+grid_y = 2
+grid_x = grid_y
+
+offset = 30
+bend_width = 20
+
+angle = 5 
+
+#stroke = svgwrite.rgb(10, 10, 10, '%')
+
+drawing = dxf.drawing('auxetic_test.dxf')
+#dwg.add(dwg.rect(insert=(0, 0), size=('100%', '100%'), rx=None, ry=None, fill='rgb(255,255,255)'))
+#dwg.viewbox(width=120*(grid_x), height=120*(grid_y))
+
+def print_box(grid_x, grid_y, offset, angle, mirror,
+              bend_width=5,
+              rng=120,
+              hinge=0.15):
+    x_min = grid_x*rng
+    y_min = grid_y*rng
+    ref = np.array([x_min, y_min])
+
+    top_left = (np.array([bend_width, 0]), np.array([offset, offset+angle]))
+    bottom_right = (np.array([rng-bend_width, rng]), np.array([rng-offset, rng-(offset+angle)]))
+    top_right = (np.array([rng, bend_width]), np.array([rng-(offset+angle), offset]))
+    bottom_left = (np.array([0, rng-bend_width]), np.array([offset+angle, rng-offset]))
+
+    lines = [top_left, top_right, bottom_right, bottom_left]
+
+    lines = [line+ref for line in lines]
+
+    if mirror:
+        lines = [[point[::-1] for point in line] for line in lines]
+
+    for l in lines:
+        line = dxf.line(l[0], l[1], color=7)
+        drawing.add(line)
+
+    square = []
+    for i in range(len(lines)):
+        line = dxf.line(lines[i][1], (hinge*lines[i][1]+lines[i-1][1])/(1+hinge), color=7)
+        square.append(lines[i][1])
+        drawing.add(line)
+
+    square.reverse()
+#    dwg.add(dwg.polyline(square, stroke='black', fill='red'))
+
+
+for gx in range(grid_x):
+    for gy in range(grid_y):
+        curr_angle = angle+(gx+gy)/5.0
+        print_box(gx, gy, offset, curr_angle, mirror=((gx+gy)%2==0))
+
+drawing.save()
